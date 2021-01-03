@@ -1,5 +1,5 @@
 import express from "express";
-import { UserModel } from "../models/UserModel";
+import { UserModel, UserModelInterface } from "../models/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
 const { validationResult } = require("express-validator");
@@ -12,9 +12,9 @@ class UserController {
                 data: users,
             });
         } catch (error) {
-            res.json({
+            res.status(500).json({
                 status: "error",
-                message: JSON.stringify(error),
+                message: error,
             });
         }
     }
@@ -30,22 +30,17 @@ class UserController {
                 return;
             }
 
-            const data: any = {
+            const data: UserModelInterface = {
                 email: req.body.email,
                 username: req.body.username,
                 fullname: req.body.fullname,
                 password: req.body.password,
-                confirm_hash: generateMD5(
+                confirmHash: generateMD5(
                     process.env.SECRET_KEY || Math.random().toString()
                 ),
             };
 
             const user = await UserModel.create(data);
-
-            res.json({
-                status: "success",
-                data: user,
-            });
 
             sendEmail(
                 {
@@ -72,7 +67,37 @@ class UserController {
                 }
             );
         } catch (error) {
-            res.json({
+            res.status(500).json({
+                status: "error",
+                message: JSON.stringify(error),
+            });
+        }
+    }
+    async verify(req: any, res: express.Response): Promise<void> {
+        try {
+            const hash = req.query.hash;
+
+            if (!hash) {
+                res.status(400).send();
+                return;
+            }
+
+            const user = await UserModel.findOne({ confirmHash: hash}).exec();
+            
+            if (user) {
+              user.confirmed = true;
+              user.save();
+
+              res.json({
+                status: 'success',
+                message: 'Верификация пройдена'
+              });
+            } else {
+              res.status(404).json({ status: 'error', message: 'Пользователь не найден' });
+            }
+
+        } catch (error) {
+            res.status(500).json({
                 status: "error",
                 message: JSON.stringify(error),
             });
