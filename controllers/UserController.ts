@@ -2,7 +2,10 @@ import express from "express";
 import { UserModel, UserModelInterface } from "../models/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
+import mongoose from "mongoose";
 const { validationResult } = require("express-validator");
+
+const isValidObjectId = mongoose.Types.ObjectId.isValid;
 class UserController {
     async index(_: any, res: express.Response): Promise<void> {
         try {
@@ -10,6 +13,29 @@ class UserController {
             res.json({
                 status: "success",
                 data: users,
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
+            });
+        }
+    }
+
+    async show(req: any, res: express.Response): Promise<void> {
+        try {
+            const userId = req.params.id;
+
+            if (!isValidObjectId(userId)) {
+                res.status(400).send();
+                return;
+            }
+
+            const user = await UserModel.findById(userId).exec();
+
+            res.json({
+                status: "success",
+                data: user,
             });
         } catch (error) {
             res.status(500).json({
@@ -34,7 +60,7 @@ class UserController {
                 email: req.body.email,
                 username: req.body.username,
                 fullname: req.body.fullname,
-                password: req.body.password,
+                password:  generateMD5(req.body.password + process.env.SECRET_KEY),
                 confirmHash: generateMD5(
                     process.env.SECRET_KEY || Math.random().toString()
                 ),
@@ -83,7 +109,7 @@ class UserController {
             }
 
             const user = await UserModel.findOne({ confirmHash: hash}).exec();
-            
+
             if (user) {
               user.confirmed = true;
               user.save();
