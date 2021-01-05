@@ -7,6 +7,7 @@ import './core/db';
 import { UserCtrl } from './controllers/UserController';
 import { registerValidations } from "./validations/register";
 import { passport } from './core/passport';
+import { TweetsCtrl } from './controllers/TweetsController';
 
 const app = express();
 
@@ -16,6 +17,12 @@ app.use(passport.initialize());
 app.get('/users', UserCtrl.index);
 app.get('/users/me', passport.authenticate('jwt'), UserCtrl.getUserInfo);
 app.get('/users/:id', UserCtrl.show);
+
+app.get('/tweets', TweetsCtrl.index);
+app.get('/tweets/:id', TweetsCtrl.show);
+app.delete('/tweets/:id', TweetsCtrl.delete);
+app.post('/tweets', TweetsCtrl.create);
+
 app.get('/auth/verify', registerValidations, UserCtrl.verify);
 app.post('/auth/register', registerValidations, UserCtrl.create);
 app.post('/auth/login', passport.authenticate('local'), UserCtrl.afterLogin);
