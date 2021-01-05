@@ -13,7 +13,7 @@ export interface UserModelInterface {
     website?: string;
 }
 
-type UserModelDocumentInterface = UserModelInterface & Document;
+export type UserModelDocumentInterface = UserModelInterface & Document;
 
 const UserSchema = new Schema<UserModelDocumentInterface>({
     email: {

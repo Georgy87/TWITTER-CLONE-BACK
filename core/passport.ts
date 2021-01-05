@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JWTstrategy, ExtractJwt } from "passport-jwt";
-import { UserModel } from "../models/UserModel";
+import { UserModel, UserModelInterface } from "../models/UserModel";
 // import { UserModelInterface } from "../models/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 
@@ -9,7 +9,9 @@ passport.use(
     new LocalStrategy(
         async (username, password, done): Promise<void> => {
             try {
-                const user = await UserModel.findOne({$or: [{ email: username }, { username }],}).exec();
+                const user = await UserModel.findOne({
+                    $or: [{ email: username }, { username }],
+                }).exec();
 
                 if (!user) {
                     return done(null, false);
@@ -31,20 +33,25 @@ passport.use(
     new JWTstrategy(
         {
             secretOrKey: process.env.SECRET_KEY || "123",
-            jwtFromRequest: ExtractJwt.fromUrlQueryParameter("token"),
+            jwtFromRequest: ExtractJwt.fromHeader("token"),
         },
-        async (payload, done) => {
+        async (payload: { data: UserModelInterface }, done): Promise<void> => {
             try {
-                return done(null, payload.user);
+                const user = await UserModel.findById(payload.data._id).exec();
+                console.log('sdf');
+                if (user) {
+                    return done(null, user);
+                }
+
+                done(null, false);
             } catch (error) {
-                done(error);
+                done(error, false);
             }
         }
     )
 );
 
 passport.serializeUser((user: any, done) => {
-
     done(null, user?._id);
 });
 

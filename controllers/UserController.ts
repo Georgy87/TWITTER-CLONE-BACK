@@ -1,8 +1,11 @@
 import express from "express";
-import { UserModel, UserModelInterface } from "../models/UserModel";
+import { UserModel,  UserModelInterface, UserModelDocumentInterface,
+} from "../models/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+
 const { validationResult } = require("express-validator");
 
 const isValidObjectId = mongoose.Types.ObjectId.isValid;
@@ -60,7 +63,9 @@ class UserController {
                 email: req.body.email,
                 username: req.body.username,
                 fullname: req.body.fullname,
-                password:  generateMD5(req.body.password + process.env.SECRET_KEY),
+                password: generateMD5(
+                    req.body.password + process.env.SECRET_KEY
+                ),
                 confirmHash: generateMD5(
                     process.env.SECRET_KEY || Math.random().toString()
                 ),
@@ -74,7 +79,7 @@ class UserController {
                     emailTo: data.email,
                     subject: "Подтверждение почты Twitter Clone Tutorial",
                     html: `Для того, чтобы подтвердить почту, перейдите <a href="http://localhost:${process
-                        .env.PORT || 8888}/users/verify?hash=${
+                        .env.PORT || 8888}/auth/verify?hash=${
                         data.confirmHash
                     }">по этой ссылке</a>`,
                 },
@@ -99,6 +104,7 @@ class UserController {
             });
         }
     }
+
     async verify(req: any, res: express.Response): Promise<void> {
         try {
             const hash = req.query.hash;
@@ -108,24 +114,66 @@ class UserController {
                 return;
             }
 
-            const user = await UserModel.findOne({ confirmHash: hash}).exec();
+            const user = await UserModel.findOne({ confirmHash: hash }).exec();
 
             if (user) {
-              user.confirmed = true;
-              user.save();
+                user.confirmed = true;
+                user.save();
 
-              res.json({
-                status: 'success',
-                message: 'Верификация пройдена'
-              });
+                res.json({
+                    status: "success",
+                    message: "Верификация пройдена",
+                });
             } else {
-              res.status(404).json({ status: 'error', message: 'Пользователь не найден' });
+                res.status(404).json({
+                    status: "error",
+                    message: "Пользователь не найден",
+                });
             }
-
         } catch (error) {
             res.status(500).json({
                 status: "error",
                 message: JSON.stringify(error),
+            });
+        }
+    }
+
+    async afterLogin(req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
+
+            res.json({
+                status: "success",
+                data: {
+                    ...user,
+                    token: jwt.sign(
+                        { data: req.user },
+                        process.env.SECRET_KEY || "123",
+                        {
+                            expiresIn: "100h",
+                        }
+                    ),
+                },
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: JSON.stringify(error),
+            });
+        }
+    }
+
+    async getUserInfo(req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
+            res.json({
+                status: "success",
+                data: user,
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
             });
         }
     }

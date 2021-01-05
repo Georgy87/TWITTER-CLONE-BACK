@@ -14,13 +14,11 @@ app.use(express.json());
 app.use(passport.initialize());
 
 app.get('/users', UserCtrl.index);
-app.get('/users/:id', registerValidations, UserCtrl.show);
+app.get('/users/me', passport.authenticate('jwt'), UserCtrl.getUserInfo);
+app.get('/users/:id', UserCtrl.show);
 app.get('/auth/verify', registerValidations, UserCtrl.verify);
 app.post('/auth/register', registerValidations, UserCtrl.create);
-app.post('/auth/login', passport.authenticate('local'), function(req, res) {
-        res.json(req.user);
-    }
-);
+app.post('/auth/login', passport.authenticate('local'), UserCtrl.afterLogin);
 
 // app.patch('/users', UserCtrl.update);
 // app.delete('/users', UserCtrl.delete);
@@ -31,5 +29,5 @@ app.listen(8888, (): void => {
     // if (err) {
     //     throw new Error(err);
     // }
-    console.log('SERVER RUNNNING!');
+    console.log('SERVER RUNNING!');
 });
