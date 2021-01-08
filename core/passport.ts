@@ -12,8 +12,8 @@ passport.use(
                 const user = await UserModel.findOne({
                     $or: [{ email: username }, { username }],
                 }).exec();
-
                 if (!user) {
+                    console.log('not user')
                     return done(null, false);
                 }
 
@@ -38,11 +38,9 @@ passport.use(
         async (payload: { data: UserModelInterface }, done): Promise<void> => {
             try {
                 const user = await UserModel.findById(payload.data._id).exec();
-                console.log('sdf');
                 if (user) {
                     return done(null, user);
                 }
-
                 done(null, false);
             } catch (error) {
                 done(error, false);

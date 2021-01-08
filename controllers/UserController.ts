@@ -45,6 +45,7 @@ class UserController {
             });
         }
     }
+
     async create(req: express.Request, res: express.Response): Promise<void> {
         try {
             const errors = validationResult(req);
@@ -136,10 +137,9 @@ class UserController {
         }
     }
 
-    async afterLogin(req: express.Request, res: express.Response): Promise<void> {
+    async afterLogin(req: any, res: express.Response): Promise<void> {
         try {
             const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
-
             res.json({
                 status: "success",
                 data: {
@@ -155,13 +155,13 @@ class UserController {
             });
         } catch (error) {
             res.status(500).json({
-                status: "error",
+                status: "error after login",
                 message: JSON.stringify(error),
             });
         }
     }
 
-    async getUserInfo(req: express.Request, res: express.Response): Promise<void> {
+    async getUserInfo(req: any, res: express.Response): Promise<void> {
         try {
             const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
             res.json({

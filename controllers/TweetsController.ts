@@ -1,6 +1,6 @@
 import express from "express";
 import { validationResult } from "express-validator";
-import { TweetModel } from "../models/TweetModel";
+import { TweetModel, TweetModelInterface } from "../models/TweetModel";
 import { UserModelInterface } from "../models/UserModel";
 import { isValidObjectId } from "../utils/isValidObjectId";
 
@@ -48,11 +48,10 @@ class TweetsController {
         }
     }
 
-    async create(req: express.Request, res: express.Response): Promise<void> {
+    async create(req: any, res: express.Response): Promise<void> {
+        const user = req.user as UserModelInterface;
         try {
-            const user = req.user as UserModelInterface;
-
-            if (user) {
+            if (user?._id) {
                 const errors = validationResult(req);
                 if (!errors.isEmpty()) {
                     res.status(400).json({
@@ -62,7 +61,7 @@ class TweetsController {
                     return;
                 }
 
-                const data: any = {
+                const data: TweetModelInterface  = {
                     text: req.body.text,
                     user: user._id,
                 };
@@ -81,13 +80,66 @@ class TweetsController {
         }
     }
 
-    async delete(_: any, res: express.Response): Promise<void> {
+    async delete(req: any, res: express.Response): Promise<void> {
+        const user = req.user as UserModelInterface;
         try {
-            const tweets = await TweetModel.find({}).exec();
-            res.json({
-                status: "success",
-                data: tweets,
+            if (user) {
+                const tweetId = req.params.id;
+
+                if (!isValidObjectId(tweetId)) {
+                    res.status(400).send();
+                    return;
+                }
+
+                const tweet = await TweetModel.findById(tweetId);
+
+                if (tweet) {
+                    console.log(tweet.user, user._id);
+                    if (String(tweet.user) === String(user._id)) {
+                        tweet.remove();
+                        res.send();
+                    } else {
+                        res.status(400).send();
+                    }
+                } else {
+                    res.status(404).send();
+                }
+            }
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
             });
+        }
+    }
+
+    async update(req: express.Request, res: express.Response): Promise<void> {
+        const user = req.user as UserModelInterface;
+        try {
+            if (user) {
+                const tweetId = req.params.id;
+                const text = req.body.text;
+
+                if (!isValidObjectId(tweetId)) {
+                    res.status(400).send();
+                    return;
+                }
+
+                const tweet = await TweetModel.findById(tweetId);
+
+                if (tweet) {
+                    console.log(text);
+                    if (String(tweet.user) === String(user._id)) {
+                        tweet.text = text;
+                        tweet.save();
+                        res.send();
+                    } else {
+                        res.status(400).send();
+                    }
+                } else {
+                    res.status(404).send();
+                }
+            }
         } catch (error) {
             res.status(500).json({
                 status: "error",

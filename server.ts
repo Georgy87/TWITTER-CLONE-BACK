@@ -8,6 +8,7 @@ import { UserCtrl } from './controllers/UserController';
 import { registerValidations } from "./validations/register";
 import { passport } from './core/passport';
 import { TweetsCtrl } from './controllers/TweetsController';
+import { tweetsValidations } from './validations/createTweet';
 
 const app = express();
 
@@ -20,8 +21,9 @@ app.get('/users/:id', UserCtrl.show);
 
 app.get('/tweets', TweetsCtrl.index);
 app.get('/tweets/:id', TweetsCtrl.show);
-app.delete('/tweets/:id', TweetsCtrl.delete);
-app.post('/tweets', TweetsCtrl.create);
+app.delete('/tweets/:id', passport.authenticate('jwt'), TweetsCtrl.delete);
+app.post('/tweets', passport.authenticate('jwt'), tweetsValidations, TweetsCtrl.create);
+app.patch('/tweets/:id', passport.authenticate('jwt'), tweetsValidations, TweetsCtrl.update);
 
 app.get('/auth/verify', registerValidations, UserCtrl.verify);
 app.post('/auth/register', registerValidations, UserCtrl.create);
