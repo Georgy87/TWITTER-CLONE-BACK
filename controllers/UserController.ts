@@ -117,7 +117,7 @@ class UserController {
 
             if (user) {
                 user.confirmed = true;
-                user.save();
+                await user.save();
 
                 res.json({
                     status: "success",

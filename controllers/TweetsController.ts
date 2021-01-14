@@ -7,7 +7,8 @@ import { isValidObjectId } from "../utils/isValidObjectId";
 class TweetsController {
     async index(_: any, res: express.Response): Promise<void> {
         try {
-            const tweets = await TweetModel.find({}).exec();
+            const tweets = await TweetModel.find({}).populate('user').sort({ 'createdAt': '-1' }).exec();
+
             res.json({
                 status: "success",
                 data: tweets,
@@ -23,18 +24,22 @@ class TweetsController {
     async show(req: any, res: express.Response): Promise<void> {
         try {
             const tweetId = req.params.id;
-
+            console.log(tweetId);
             if (!isValidObjectId(tweetId)) {
                 res.status(400).send();
                 return;
             }
 
-            const tweet = await TweetModel.findById(tweetId).exec();
+            const tweet = await TweetModel.findById(tweetId)
+                .populate("user")
+                .sort({ createdAt: -1 })
+                .exec();
 
             if (!tweet) {
                 res.status(404).send();
                 return;
             }
+            console.log(tweet);
 
             res.json({
                 status: "success",
@@ -61,7 +66,7 @@ class TweetsController {
                     return;
                 }
 
-                const data: TweetModelInterface  = {
+                const data: TweetModelInterface = {
                     text: req.body.text,
                     user: user._id,
                 };
@@ -69,7 +74,7 @@ class TweetsController {
                 const tweet = await TweetModel.create(data);
                 res.json({
                     status: "success",
-                    data: tweet,
+                    data: await tweet.populate('user').execPopulate(),
                 });
             }
         } catch (error) {
@@ -113,7 +118,7 @@ class TweetsController {
         }
     }
 
-    async update(req: express.Request, res: express.Response): Promise<void> {
+    async update(req: any, res: express.Response): Promise<void> {
         const user = req.user as UserModelInterface;
         try {
             if (user) {
