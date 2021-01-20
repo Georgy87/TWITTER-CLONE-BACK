@@ -4,6 +4,7 @@ import cloudinary from "../core/cloudinary";
 class UploadFileController {
     async upload(req: any, res: express.Response): Promise<void> {
         const file = req.file;
+        // public_id: "media_library/folders",
         cloudinary.v2.uploader
             .upload_stream({ resource_type: "auto" }, (error, result) => {
                 console.log(error, result);
@@ -13,7 +14,12 @@ class UploadFileController {
                         message: error || "upload error",
                     });
                 }
-                res.status(201).json(result);
+                res.status(201).json({
+                    url: result.url,
+                    size: Math.round(result.bytes / 1024),
+                    height: result.height,
+                    width: result.width,
+                });
             })
             .end(file.buffer);
     }

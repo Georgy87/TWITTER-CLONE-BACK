@@ -8,10 +8,12 @@ import { generateMD5 } from "../utils/generateHash";
 passport.use(
     new LocalStrategy(
         async (username, password, done): Promise<void> => {
+
             try {
                 const user = await UserModel.findOne({
                     $or: [{ email: username }, { username }],
                 }).exec();
+              
                 if (!user) {
                     console.log('not user')
                     return done(null, false);

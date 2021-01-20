@@ -1,13 +1,16 @@
 import express from "express";
 import { validationResult } from "express-validator";
-import { TweetModel, TweetModelInterface } from "../models/TweetModel";
+import { TweetModel } from "../models/TweetModel";
 import { UserModelInterface } from "../models/UserModel";
 import { isValidObjectId } from "../utils/isValidObjectId";
 
 class TweetsController {
     async index(_: any, res: express.Response): Promise<void> {
         try {
-            const tweets = await TweetModel.find({}).populate('user').sort({ 'createdAt': '-1' }).exec();
+            const tweets = await TweetModel.find({})
+                .populate("user")
+                .sort({ createdAt: "-1" })
+                .exec();
 
             res.json({
                 status: "success",
@@ -24,7 +27,7 @@ class TweetsController {
     async show(req: any, res: express.Response): Promise<void> {
         try {
             const tweetId = req.params.id;
-            console.log(tweetId);
+
             if (!isValidObjectId(tweetId)) {
                 res.status(400).send();
                 return;
@@ -53,7 +56,7 @@ class TweetsController {
         }
     }
 
-    async create(req: any, res: express.Response): Promise<void> {
+    async create(req: express.Request, res: express.Response): Promise<void> {
         const user = req.user as UserModelInterface;
         try {
             if (user?._id) {
@@ -66,15 +69,19 @@ class TweetsController {
                     return;
                 }
 
-                const data: TweetModelInterface = {
+                const data: any = {
                     text: req.body.text,
+                    images: req.body.images,
                     user: user._id,
                 };
 
                 const tweet = await TweetModel.create(data);
+
+                user.tweets?.push(tweet._id);
+
                 res.json({
                     status: "success",
-                    data: await tweet.populate('user').execPopulate(),
+                    data: await tweet.populate("user").execPopulate(),
                 });
             }
         } catch (error) {
@@ -99,7 +106,6 @@ class TweetsController {
                 const tweet = await TweetModel.findById(tweetId);
 
                 if (tweet) {
-                    console.log(tweet.user, user._id);
                     if (String(tweet.user) === String(user._id)) {
                         tweet.remove();
                         res.send();
@@ -145,6 +151,36 @@ class TweetsController {
                     res.status(404).send();
                 }
             }
+        } catch (error) {
+            res.status(500).json({
+                status: "error",
+                message: error,
+            });
+        }
+    }
+
+    async getUserTweets(req: any, res: express.Response): Promise<void> {
+        try {
+            const userId = req.params.id;
+
+            if (!isValidObjectId(userId)) {
+                res.status(400).send();
+                return;
+            }
+
+            const tweet = await TweetModel.find({ user: userId })
+                .populate("user")
+                .exec();
+
+            if (!tweet) {
+                res.status(404).send();
+                return;
+            }
+
+            res.json({
+                status: "success",
+                data: tweet,
+            });
         } catch (error) {
             res.status(500).json({
                 status: "error",

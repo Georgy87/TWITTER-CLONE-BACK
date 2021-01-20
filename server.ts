@@ -32,6 +32,7 @@ app.get('/users/:id', UserCtrl.show);
 
 app.get('/tweets', TweetsCtrl.index);
 app.get('/tweets/:id', TweetsCtrl.show);
+app.get('/tweets/user/:id', TweetsCtrl.getUserTweets);
 app.delete('/tweets/:id', passport.authenticate('jwt'), TweetsCtrl.delete);
 app.post('/tweets', passport.authenticate('jwt'), tweetsValidations, TweetsCtrl.create);
 app.patch('/tweets/:id', passport.authenticate('jwt'), tweetsValidations, TweetsCtrl.update);
@@ -40,7 +41,7 @@ app.get('/auth/verify', registerValidations, UserCtrl.verify);
 app.post('/auth/register', registerValidations, UserCtrl.create);
 app.post('/auth/login', passport.authenticate('local'), UserCtrl.afterLogin);
 
-app.post('/upload', upload.single('avatar'), UploadFileCtrl.upload);
+app.post('/upload', upload.single('image'), UploadFileCtrl.upload);
 
 // app.patch('/users', UserCtrl.update);
 // app.delete('/users', UserCtrl.delete);

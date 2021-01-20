@@ -1,5 +1,8 @@
 import express from "express";
-import { UserModel,  UserModelInterface, UserModelDocumentInterface,
+import {
+    UserModel,
+    UserModelInterface,
+    UserModelDocumentInterface,
 } from "../models/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
@@ -32,7 +35,9 @@ class UserController {
                 return;
             }
 
-            const user = await UserModel.findById(userId).exec();
+            const user = await UserModel.findById(userId)
+                .populate("tweets")
+                .exec();
 
             res.json({
                 status: "success",
@@ -58,6 +63,7 @@ class UserController {
                 return;
             }
 
+            const randomStr = Math.random().toString();
             const data: UserModelInterface = {
                 email: req.body.email,
                 username: req.body.username,
@@ -65,9 +71,7 @@ class UserController {
                 password: generateMD5(
                     req.body.password + process.env.SECRET_KEY
                 ),
-                confirmHash: generateMD5(
-                    process.env.SECRET_KEY || Math.random().toString()
-                ),
+                confirmHash: generateMD5(process.env.SECRET_KEY + randomStr || randomStr),
             };
 
             const user = await UserModel.create(data);
@@ -114,14 +118,23 @@ class UserController {
             }
 
             const user = await UserModel.findOne({ confirmHash: hash }).exec();
-
+            
             if (user) {
                 user.confirmed = true;
                 await user.save();
 
                 res.json({
                     status: "success",
-                    message: "Верификация пройдена",
+                    data: {
+                        ...user.toJSON(),
+                        token: jwt.sign(
+                            { data: user.toJSON() },
+                            process.env.SECRET_KEY || "123",
+                            {
+                                expiresIn: "30 days",
+                            }
+                        ),
+                    },
                 });
             } else {
                 res.status(404).json({
@@ -137,9 +150,15 @@ class UserController {
         }
     }
 
-    async afterLogin(req: any, res: express.Response): Promise<void> {
+    async afterLogin(
+        req: express.Request,
+        res: express.Response
+    ): Promise<void> {
         try {
-            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
+            const user = req.user
+                ? (req.user as UserModelDocumentInterface).toJSON()
+                : undefined;
+            console.log(req.user);
             res.json({
                 status: "success",
                 data: {
@@ -163,7 +182,9 @@ class UserController {
 
     async getUserInfo(req: any, res: express.Response): Promise<void> {
         try {
-            const user = req.user ? (req.user as UserModelDocumentInterface).toJSON() : undefined;
+            const user = req.user
+                ? (req.user as UserModelDocumentInterface).toJSON()
+                : undefined;
             res.json({
                 status: "success",
                 data: user,
